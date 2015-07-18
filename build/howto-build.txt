@@ -1,0 +1,39 @@
+Maven is required to avail of the command line builds below.
+
+Build command line:
+	$ cd build
+	$ mvn clean package
+	   This builds the runnable jar which can be executed via the command $ java -jar ./target/makesense-1.0.one-jar.jar
+	   
+	
+Build Notes:
+1. The Processing libs are kept in a local repository under repo/...
+   This should make the build environment portable. All other dependencies are downloaded from Maven Central.
+2. The packaging is done with the one-jar plugin:  https://code.google.com/p/onejar-maven-plugin/
+   Example usage: http://www.mkyong.com/maven/maven-create-a-fat-jar-file-one-jar-example/
+
+	
+Build Artifacts:
+The executable jar file makesense-1.0.one-jar.jar is created.
+Run it with the command: $ java -jar makesense-1.0.one-jar.jar
+The MakeSenseConnector GUI should appear. 
+
+Java Version
+    Built and tested against JDK 1.7.0.71	
+
+
+Running the test project:
+1. Start up the MakeSenseConnector: $ java -jar makesense-1.0.one-jar.jar
+2. Load the scratch/IOBoardTest.sbx project into scratchx.org
+3. Load file extensions/MakeSenseConnectorIO-Ext-v1.js into scratchx.org as an extension.
+4. Click the green flag on the Scratch project. It should connect to the MakeSenseConnector. 
+   The extension light will go green when successfully connected.
+
+Testing
+ Channels 0-3 are input channels. Channels 4-7 are output channels. This is hard coded for development purposes.
+ The default state of the board is that all output channels VCC are set to high
+ Click on the "turn channel 4 off" block and see the console output.
+
+ ISSUE: the output channels do not respond to the device writes to turn their VCC on and off.
+ This may be due to the improper device write protocol in the WSServer class method onMessage() in WSServer.java.
+
