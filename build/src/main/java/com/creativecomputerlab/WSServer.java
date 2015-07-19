@@ -68,10 +68,13 @@ public class WSServer extends WebSocketServer {
     if (device!=null) {
       byte buf[]=new byte[16];
       buf[0]=(byte)3;
-      buf[1]=(byte)'I';
-      buf[3]=(byte)('7'- (Integer.parseInt(msg[1]) -4));
-	  buf[2]=(byte)msg[2].charAt(0);
+      buf[1]=(byte)73;   //'I' ASCII=73
+ 	  buf[2]=(byte)msg[2].charAt(0);   //'H' = 72, 'L' = 76
+      //buf[3]=(byte)(48 + Integer.parseInt(msg[1]));
+      buf[3]=(byte)msg[1].charAt(0);
 
+      System.out.println("Sending buf: {" + buf[0] + ", " + buf[1] + ", " + buf[2] + ", " + buf[3] + "}");  
+ 	  
 	  try {
 		  device.write(buf);
 		  System.out.println ("Wrote to device OK");
