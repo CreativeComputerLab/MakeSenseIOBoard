@@ -76,8 +76,9 @@ public class WSServer extends WebSocketServer {
       System.out.println("Sending buf: {" + buf[0] + ", " + buf[1] + ", " + buf[2] + ", " + buf[3] + "}");  
  	  
 	  try {
-		  device.write(buf);
-		  System.out.println ("Wrote to device OK");
+		  int bytesRead =  -1;
+		  bytesRead = device.write(buf);
+		  System.out.println ("Wrote " + bytesRead + " bytes to device OK");
 	  }
 	  catch (Exception ex) {
 		System.out.println ("Wrote to device ERROR");

@@ -102,8 +102,8 @@ public void draw() {
     }
   } else {
     init_device();
+	
   }
-  
 }
 
 public void delay_ms(int ms) {
@@ -491,6 +491,7 @@ public HIDDeviceInfo[] filter_HID_ID_usage(int vid, int pid, int usage_page, int
           byte buf[]=new byte[16];
           buf[0]=3;
           buf[1]=(byte)'R';
+		  println ("Writing to device: " + info);
           HID_write_to_device(buf, try_device);
           buf = HID_read_from_device(try_device);
           //println(buf);
