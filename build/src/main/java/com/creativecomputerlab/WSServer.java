@@ -15,14 +15,17 @@ import java.util.*;
 public class WSServer extends WebSocketServer {
 
   private Set<WebSocket> conns;  //List of connected clients
-  private HIDDevice device;
+  private HIDDevice device = null;
+  public boolean writing = false;
+  private Object writeLock = null;
   
   /**
    * Creates a new WebSocketServer listening on a given port with access to a given HID device initialized by the caller.
    */
-  public WSServer(int PORT, HIDDevice dev) {
+  public WSServer(int PORT, HIDDevice dev, Object lock) {
     super(new InetSocketAddress(PORT));
 	device = dev;
+	writeLock = lock;
 	System.out.println("Starting Websocket listener on port " + PORT);
 		 if (device!=null) {
 		 try {
@@ -54,37 +57,10 @@ public class WSServer extends WebSocketServer {
    * Handle received message.
    */
   public void onMessage(WebSocket conn, String message) {
-    System.out.println("Received: " + message);
-	String [] msg = message.split(":");
-	System.out.println("split string: " + msg[1] + "       " + msg[2] + "     " + msg[2].charAt(0));  
-	
-	/**
-	 * This is where incoming read or write requests from the client are processed to set output channels either high or low.
-	 * For now, the simple protocol message format is:
-			ch:n:H    -- This message indicates that the client wants to set channel n to high.
-			ch:n:L    -- This message indicates that the client wants to set channel n to low.
-	*/	
-	
-    if (device!=null) {
-      byte buf[]=new byte[16];
-      buf[0]=(byte)3;
-      buf[1]=(byte)73;   //'I' ASCII=73
- 	  buf[2]=(byte)msg[2].charAt(0);   //'H' = 72, 'L' = 76
-      //buf[3]=(byte)(48 + Integer.parseInt(msg[1]));
-      buf[3]=(byte)msg[1].charAt(0);
-
-      System.out.println("Sending buf: {" + buf[0] + ", " + buf[1] + ", " + buf[2] + ", " + buf[3] + "}");  
- 	  
-	  try {
-		  int bytesRead =  -1;
-		  bytesRead = device.write(buf);
-		  System.out.println ("Wrote " + bytesRead + " bytes to device OK");
-	  }
-	  catch (Exception ex) {
-		System.out.println ("Wrote to device ERROR");
-		ex.printStackTrace();
-	  }	  
-	}
+	if (!writing) { //Drop write requests if the occur too rapidly
+		writeDevice(message);
+	} else 
+		System.out.println ("Ignored write request");
  }
    
    /** 
@@ -108,8 +84,12 @@ public class WSServer extends WebSocketServer {
 			ex.printStackTrace();
 		}
 	}
+  } 
+  
+  public void setLock (Object lock) {
+	writeLock = lock; 
   }
-   
+  
    /** 
    * Error handler.
    */
@@ -122,8 +102,46 @@ public class WSServer extends WebSocketServer {
    * Use for standalone testing
    */
   public static void main(String[] args) {
-    WSServer server = new WSServer(8887, null);
+    WSServer server = new WSServer(8887, null, null);
     server.start();
   }
   
+  private synchronized void writeDevice(String message) {
+	synchronized (writeLock) {
+	writing = true;
+      //System.out.println("Received: " + message);
+	String [] msg = message.split(":");
+	/**
+	 * This is where incoming read or write requests from the client are processed to set output channels either high or low.
+	 * For now, the simple protocol message format is:
+			ch:n:H    -- This message indicates that the client wants to set channel n to high.
+			ch:n:L    -- This message indicates that the client wants to set channel n to low.
+	*/	
+	
+    if (device!=null) {
+      byte buf[]=new byte[16];
+      buf[0]=(byte)3;
+      buf[1]=(byte)73;   //'I' ASCII=73
+ 	  buf[2]=(byte)msg[2].charAt(0);   //'H' = 72, 'L' = 76
+      buf[3]=(byte)msg[1].charAt(0);   // Channel number in ASCII
+
+      //System.out.println("Sending buf: {" + buf[0] + ", " + buf[1] + ", " + buf[2] + ", " + buf[3] + "}");  
+ 	  
+	  try {
+		  int bytesRead =  -1;
+		  bytesRead = device.write(buf);
+		  //System.out.println ("Wrote " + bytesRead + " bytes to device OK");
+	  }
+	  catch (Exception ex) {
+		System.out.println ("Wrote to device ERROR");
+		ex.printStackTrace();
+	  }	
+	  finally {
+	  		writing = false;
+	  }
+	}
+
+    }
+  
+}
 }

@@ -29,6 +29,7 @@ import com.creativecomputerlab.*;
 
 public class MakeSenseConnector extends PApplet {
 
+int ReadOnlyChannels = 8;
 WSServer server;
 
 ControlP5 cp5;
@@ -38,6 +39,8 @@ Control_panel control_panel;
 
 HIDDevice target_device=null;
 
+public Object lock = new Object();
+
 public void init_device() {
   HIDDeviceInfo[] dev_list=filter_HID_ID_usage(0x04D8, 0xF46A, 0x00, 0x01);
   if (dev_list!=null && dev_list.length>0) {
@@ -45,6 +48,7 @@ public void init_device() {
     try {
       target_device=dev_list[0].open();
 	  server.setDevice(target_device);
+	  server.setLock(lock);
     }
     catch (Exception ex) {
       ex.printStackTrace();
@@ -55,10 +59,11 @@ public void init_device() {
 }
 
 public void setup() {
-  server = new WSServer(8282, null);
+  server = new WSServer(8282, null, lock);
   server.start();
   println("started web server");
 
+  
 	init_HID();
   //print_HID_devices();
 
@@ -84,13 +89,14 @@ public void draw() {
     byte buf[]=new byte[16];
     buf[0]=3;
     buf[1]=(byte)'R';
-    HID_write_to_device(buf, target_device);
-    buf = HID_read_from_device(target_device);
+	synchronized (lock) {
+		HID_write_to_device(buf, target_device);
+		buf = HID_read_from_device(target_device);
+	}
     //println(buf);
     if (buf!=null) {
       if (buf[0]==3 && buf[1]==(byte)'R') {
-		// First 4 channels are input channels. Second 4 channels (4-7) are output and get set by web socket server.
-        for (int i=0; i<4; i++) {
+        for (int i=0; i<ReadOnlyChannels; i++) {
           channels[i].value_slider.setValue(buf[2+i]&0xFF);
           channels[i].tick_marker();
           channels[i].draw_active_area();
@@ -1290,6 +1296,8 @@ public void load_setting_from_file(int file_id) {
     }
   }
 }
+
+
 
 
 int Sensor0, Sensor1, Sensor2, Sensor3, Sensor4, Sensor5, Sensor6, Sensor7;
